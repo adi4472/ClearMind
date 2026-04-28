@@ -17,3 +17,12 @@ export interface SessionEntry extends AnalyzeThoughtResponse {
   raw_input?: string;
   created_at: string;
 }
+
+export interface BreakdownRequest {
+  text: string;
+  next_step?: string;
+}
+
+export interface BreakdownResponse {
+  steps: string[];
+}
