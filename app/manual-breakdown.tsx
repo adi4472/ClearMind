@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -11,8 +12,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { saveEntry } from '../lib/entries';
+import { router, useLocalSearchParams } from 'expo-router';
+import { getActiveTask, saveEntry } from '../lib/entries';
 import { useUserStore } from '../store/useUserStore';
 import { theme } from '../constants/theme';
 import TagSelector from '../components/TagSelector';
@@ -40,9 +41,30 @@ const QUESTIONS: { key: 'problem' | 'step' | 'ignore'; label: string; placeholde
 
 export default function ManualBreakdownScreen() {
   const saveHistory = useUserStore((state) => state.preferences.saveHistory);
-  const [answers, setAnswers] = useState({ problem: '', step: '', ignore: '' });
+  const params = useLocalSearchParams<{ problem?: string }>();
+  const initialProblem = typeof params.problem === 'string' ? params.problem : '';
+  const [answers, setAnswers] = useState({ problem: initialProblem, step: '', ignore: '' });
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [checkingActive, setCheckingActive] = useState(true);
+
+  // One active task at a time. If there's already one, send the user there
+  // instead of letting them stack a second.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const active = await getActiveTask();
+      if (cancelled) return;
+      if (active) {
+        router.replace('/active-task');
+      } else {
+        setCheckingActive(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const update = (key: keyof typeof answers, value: string) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
@@ -65,8 +87,15 @@ export default function ManualBreakdownScreen() {
           ignore: answers.ignore.trim(),
           tags: tags.length ? tags : undefined,
         });
+        router.replace('/active-task');
+      } else {
+        // Save history is off — nothing persists, so there's no active task to view.
+        Alert.alert(
+          'Saved (locally for this session)',
+          'Save history is off, so this breakdown won\'t be tracked as an active task.',
+          [{ text: 'OK', onPress: () => router.back() }],
+        );
       }
-      router.back();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not save';
       Alert.alert('Save failed', message);
@@ -74,6 +103,16 @@ export default function ManualBreakdownScreen() {
       setSaving(false);
     }
   };
+
+  if (checkingActive) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -135,6 +174,7 @@ export default function ManualBreakdownScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { padding: theme.spacing.lg, gap: theme.spacing.lg },
   title: { fontSize: 26, fontWeight: '700', color: theme.colors.text },
   subtitle: { fontSize: 15, color: theme.colors.subtext, marginTop: 4 },

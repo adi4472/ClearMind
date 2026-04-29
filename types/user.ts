@@ -10,4 +10,5 @@ export interface UserPreferences {
   privateMode: boolean;
   goal: UserGoal;
   defaultFocusMinutes: FocusMinutes;
+  onboarded: boolean;
 }

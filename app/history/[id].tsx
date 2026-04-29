@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   AIBreakdownPayload,
+  ConversationPayload,
   EntryPayload,
   FullEntry,
   ManualBreakdownPayload,
@@ -21,6 +22,7 @@ import {
   togglePin,
   updateEntryTags,
 } from '../../lib/entries';
+import { useSessionStore } from '../../store/useSessionStore';
 import { theme } from '../../constants/theme';
 import { TAG_LABELS, isPresetTag } from '../../constants/tags';
 import TagSelector from '../../components/TagSelector';
@@ -177,7 +179,40 @@ export default function HistoryDetailScreen() {
   );
 }
 
+function ResumeConversationButton({ entry }: { entry: FullEntry<EntryPayload> }) {
+  const setMessages = useSessionStore((state) => state.setMessages);
+  const setCurrentConversationId = useSessionStore((state) => state.setCurrentConversationId);
+  const handle = () => {
+    const p = entry.payload as ConversationPayload;
+    setMessages(p.messages);
+    setCurrentConversationId(entry.id);
+    router.replace('/chat');
+  };
+  return (
+    <Pressable style={styles.resumeButton} onPress={handle}>
+      <Text style={styles.resumeText}>Resume conversation</Text>
+    </Pressable>
+  );
+}
+
 function renderBody(entry: FullEntry<EntryPayload>) {
+  if (entry.type === 'conversation') {
+    const p = entry.payload as ConversationPayload;
+    return (
+      <View style={styles.card}>
+        <Section heading="Conversation" body={p.title} />
+        <View style={styles.transcript}>
+          {p.messages.map((m) => (
+            <View key={m.id} style={m.role === 'user' ? styles.transcriptUser : styles.transcriptAssistant}>
+              <Text style={styles.transcriptRole}>{m.role === 'user' ? 'You' : 'ClearMind'}</Text>
+              <Text style={styles.transcriptText}>{m.text}</Text>
+            </View>
+          ))}
+        </View>
+        <ResumeConversationButton entry={entry} />
+      </View>
+    );
+  }
   if (entry.type === 'thought') {
     const p = entry.payload as ThoughtPayload;
     return (
@@ -185,7 +220,7 @@ function renderBody(entry: FullEntry<EntryPayload>) {
         <Section heading="Your thought" body={p.text} />
         <Section heading="What's happening" body={p.summary} />
         {p.pattern ? <Section heading="Pattern" body={p.pattern} /> : null}
-        <Section heading="Next step" body={p.next_step} />
+        {p.next_step ? <Section heading="Next step" body={p.next_step} /> : null}
       </View>
     );
   }
@@ -287,4 +322,27 @@ const styles = StyleSheet.create({
   },
   tagPillText: { color: theme.colors.text, fontSize: 13, fontWeight: '500' },
   tagEmpty: { color: theme.colors.subtext, fontSize: 14 },
+  transcript: { gap: theme.spacing.sm, marginTop: theme.spacing.sm },
+  transcriptUser: {
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.sm,
+    gap: 4,
+  },
+  transcriptAssistant: {
+    backgroundColor: theme.colors.secondary,
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.sm,
+    gap: 4,
+  },
+  transcriptRole: { fontSize: 11, fontWeight: '700', color: theme.colors.subtext, letterSpacing: 0.4 },
+  transcriptText: { fontSize: 15, lineHeight: 21, color: theme.colors.text },
+  resumeButton: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.sm,
+  },
+  resumeText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 });

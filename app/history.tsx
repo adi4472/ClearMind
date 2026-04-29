@@ -11,7 +11,15 @@ import {
   View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { FullEntry, deleteEntry, listFullEntries, togglePin } from '../lib/entries';
+import {
+  ConversationPayload,
+  FullEntry,
+  deleteEntry,
+  deriveEntryTitle,
+  listFullEntries,
+  togglePin,
+} from '../lib/entries';
+import { useSessionStore } from '../store/useSessionStore';
 import { theme } from '../constants/theme';
 import { PRESET_TAGS, PresetTag, TAG_LABELS, isPresetTag } from '../constants/tags';
 
@@ -19,6 +27,7 @@ const TYPE_LABEL: Record<FullEntry['type'], string> = {
   thought: 'Thought',
   manual_breakdown: 'Manual breakdown',
   ai_breakdown: 'AI breakdown',
+  conversation: 'Conversation',
 };
 
 function formatDate(iso: string): string {
@@ -35,6 +44,8 @@ export default function HistoryScreen() {
   const [entries, setEntries] = useState<FullEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<PresetTag | null>(null);
+  const setMessages = useSessionStore((state) => state.setMessages);
+  const setCurrentConversationId = useSessionStore((state) => state.setCurrentConversationId);
 
   const load = useCallback(async () => {
     try {
@@ -143,13 +154,25 @@ export default function HistoryScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}
-            onPress={() => router.push({ pathname: '/history/[id]', params: { id: item.id } })}
+            onPress={() => {
+              if (item.type === 'conversation') {
+                const p = item.payload as ConversationPayload;
+                setMessages(p.messages);
+                setCurrentConversationId(item.id);
+                router.push('/chat');
+              } else {
+                router.push({ pathname: '/history/[id]', params: { id: item.id } });
+              }
+            }}
             onLongPress={() => handleLongPress(item)}
           >
             <View style={styles.cardHeader}>
               <Text style={styles.type}>{TYPE_LABEL[item.type]}</Text>
               {item.pinned ? <Text style={styles.pinned}>Pinned</Text> : null}
             </View>
+            <Text style={styles.title} numberOfLines={2}>
+              {deriveEntryTitle(item)}
+            </Text>
             <Text style={styles.date}>{formatDate(item.created_at)}</Text>
             {item.payload.tags && item.payload.tags.length > 0 ? (
               <View style={styles.rowTagPills}>
@@ -211,7 +234,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  type: { fontSize: 15, fontWeight: '600', color: theme.colors.text },
+  type: { fontSize: 12, color: theme.colors.subtext, fontWeight: '600', letterSpacing: 0.4 },
+  title: { fontSize: 15, fontWeight: '600', color: theme.colors.text, lineHeight: 21 },
   pinned: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
   date: { fontSize: 13, color: theme.colors.subtext },
   rowTagPills: {

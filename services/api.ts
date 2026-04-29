@@ -3,6 +3,10 @@ import {
   AnalyzeThoughtResponse,
   BreakdownRequest,
   BreakdownResponse,
+  ChatRequest,
+  ChatResponse,
+  ExtractTasksRequest,
+  ExtractTasksResponse,
   SessionEntry,
 } from '../types/session';
 
@@ -44,6 +48,50 @@ export async function analyzeThought(payload: AnalyzeThoughtRequest): Promise<An
 
 export async function requestBreakdown(payload: BreakdownRequest): Promise<BreakdownResponse> {
   const url = `${API_BASE_URL}/breakdown`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'unknown';
+    throw new Error(`Network unreachable at ${url} (${detail})`);
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Backend returned ${response.status} from ${url}: ${body.slice(0, 200)}`);
+  }
+
+  return response.json();
+}
+
+export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
+  const url = `${API_BASE_URL}/chat`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'unknown';
+    throw new Error(`Network unreachable at ${url} (${detail})`);
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Backend returned ${response.status} from ${url}: ${body.slice(0, 200)}`);
+  }
+
+  return response.json();
+}
+
+export async function extractTasks(payload: ExtractTasksRequest): Promise<ExtractTasksResponse> {
+  const url = `${API_BASE_URL}/extract-tasks`;
   let response: Response;
   try {
     response = await fetch(url, {

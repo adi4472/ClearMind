@@ -4,7 +4,6 @@
     "slug": "cognitive-hygiene-app",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "clearmind",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,10 +12,6 @@
       "bundleIdentifier": "com.example.clearmind"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F7F8F5"
-      },
       "package": "com.example.clearmind"
     },
     "web": {
@@ -26,10 +21,23 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#6FA58B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4709f518-7763-46dd-a411-f625195e3905"
+      }
+    },
+    "owner": "adi4472"
   }
 }

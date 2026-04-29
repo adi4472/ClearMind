@@ -9,6 +9,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   privateMode: false,
   goal: 'reduce_overthinking',
   defaultFocusMinutes: 15,
+  onboarded: false,
 };
 
 export async function loadPreferences(): Promise<UserPreferences> {

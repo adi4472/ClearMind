@@ -20,10 +20,12 @@ export default function AIResponseCard({ data }: Props) {
           <Text style={styles.body}>{data.pattern}</Text>
         </View>
       ) : null}
-      <View style={styles.section}>
-        <Text style={styles.heading}>Next step</Text>
-        <Text style={styles.body}>{data.next_step}</Text>
-      </View>
+      {data.next_step ? (
+        <View style={styles.section}>
+          <Text style={styles.heading}>Next step</Text>
+          <Text style={styles.body}>{data.next_step}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
